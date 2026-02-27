@@ -6,17 +6,20 @@ import '../../../domain/metrics/metrics_engine.dart';
 import '../../../utils/formatters.dart';
 
 /// Top KPI block: current rank, progress to next, highest rank ever, lifetime, year total.
+/// All totals are shown incl. VAT, with a smaller excl. VAT hint.
 class KpiHeader extends StatelessWidget {
   const KpiHeader({
     super.key,
     this.currentRankResult,
     this.bestRankResult,
     this.metrics,
+    this.monthlyTarget,
   });
 
   final RankResult? currentRankResult;
   final RankResult? bestRankResult;
   final MetricsSnapshot? metrics;
+  final int? monthlyTarget;
 
   @override
   Widget build(BuildContext context) {
@@ -49,28 +52,58 @@ class KpiHeader extends StatelessWidget {
           ),
         ],
         Spacing.gap24,
+        if (metrics != null && monthlyTarget != null) ...[
+          Text('Goal progress (incl. VAT)', style: theme.bodyLarge),
+          Text(
+            '${formatCurrencyCompactNoDecimals(metrics!.monthTotal)} / ${formatCurrencyCompactNoDecimals(monthlyTarget!.toDouble())}'
+            ' (${_goalPercent(metrics!.monthTotal, monthlyTarget!).toStringAsFixed(0)}%)',
+            style: theme.headlineSmall,
+          ),
+          Spacing.gap16,
+        ],
         Text('Highest rank ever', style: theme.bodyLarge),
         Text(
           bestRankResult?.rank ?? '—',
           style: theme.headlineSmall,
         ),
         Spacing.gap16,
-        Text('Lifetime revenue', style: theme.bodyLarge),
+        Text('Lifetime revenue (incl. VAT)', style: theme.bodyLarge),
         Text(
           metrics != null
               ? formatCurrencyCompactNoDecimals(metrics!.lifetimeTotal)
               : '—',
           style: theme.headlineMedium,
         ),
+        if (metrics != null) ...[
+          Spacing.gap8,
+          Text(
+            'Excl. VAT: ${formatCurrencyCompactNoDecimals(metrics!.lifetimeTotalExcl)}',
+            style: theme.bodySmall,
+          ),
+        ],
         Spacing.gap16,
-        Text('Year total', style: theme.bodyLarge),
+        Text('Year total (incl. VAT)', style: theme.bodyLarge),
         Text(
           metrics != null
               ? formatCurrencyCompactNoDecimals(metrics!.yearTotal)
               : '—',
           style: theme.headlineMedium,
         ),
+        if (metrics != null) ...[
+          Spacing.gap8,
+          Text(
+            'Excl. VAT: ${formatCurrencyCompactNoDecimals(metrics!.yearTotalExcl)}',
+            style: theme.bodySmall,
+          ),
+        ],
       ],
     );
+  }
+
+  double _goalPercent(double value, int target) {
+    if (target <= 0) return 0;
+    final pct = (value / target) * 100;
+    if (pct.isNaN || pct.isInfinite) return 0;
+    return pct.clamp(0, 999);
   }
 }

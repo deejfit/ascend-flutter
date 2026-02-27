@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../data/models/revenue_entry.dart';
 import '../../../../utils/dates.dart';
@@ -22,7 +23,7 @@ class RevenueChart extends StatelessWidget {
   final int selectedYear;
   final int selectedMonth;
 
-  /// Cumulative by day (1-based). Map dayIndex -> cumulative sum; day 0 = 0.
+  /// Cumulative (incl. VAT) by day (1-based). Map dayIndex -> cumulative sum; day 0 = 0.
   static List<double> _cumulativeByDay(
     List<RevenueEntry> entries,
     int year,
@@ -34,7 +35,9 @@ class RevenueChart extends StatelessWidget {
       final d = DateTime.fromMillisecondsSinceEpoch(e.timestamp);
       if (d.year != year || d.month != month) continue;
       final day = d.day.clamp(1, days);
-      daily[day] += e.amount;
+      final isFreelance = e.source == 'Freelance';
+      final amountIncl = isFreelance ? e.amount * 1.21 : e.amount;
+      daily[day] += amountIncl;
     }
     final cumulative = List<double>.filled(days + 1, 0);
     for (var i = 1; i <= days; i++) {
@@ -167,11 +170,12 @@ class RevenueChart extends StatelessWidget {
               lineTouchData: LineTouchData(
                 enabled: true,
                 touchTooltipData: LineTouchTooltipData(
-                  getTooltipItems: (touchedSpots) =>
-                      touchedSpots.map((s) => LineTooltipItem(
-                            _formatY(s.y),
+                  getTooltipItems: (touchedSpots) => touchedSpots
+                      .map((s) => LineTooltipItem(
+                            _formatTooltipY(s.y),
                             theme.textTheme.bodySmall ?? const TextStyle(),
-                          )).toList(),
+                          ))
+                      .toList(),
                 ),
               ),
             ),
@@ -192,5 +196,11 @@ class RevenueChart extends StatelessWidget {
     if (y >= 1000000) return '${(y / 1e6).toStringAsFixed(1)}M';
     if (y >= 1000) return '${(y / 1000).toStringAsFixed(0)}k';
     return y.toStringAsFixed(0);
+  }
+
+  static String _formatTooltipY(double y) {
+    final value = y.round();
+    final formatter = NumberFormat.decimalPattern('nl_NL');
+    return formatter.format(value);
   }
 }

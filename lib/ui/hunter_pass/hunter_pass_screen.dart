@@ -19,8 +19,10 @@ class HunterPassScreen extends StatefulWidget {
 
 class _HunterPassScreenState extends State<HunterPassScreen> {
   bool _loading = true;
-  double _lifetimeTotal = 0;
-  double _bestMonthTotal = 0;
+  double _lifetimeTotal = 0; // incl. VAT
+  double _lifetimeTotalExcl = 0;
+  double _bestMonthTotal = 0; // incl. VAT
+  double _bestMonthTotalExcl = 0;
   int _bestMonthYear = 0;
   int _bestMonthMonth = 0;
   DateTime? _firstEntryDate;
@@ -45,20 +47,34 @@ class _HunterPassScreenState extends State<HunterPassScreen> {
       final currentEntries =
           await rev.listEntriesForMonth(now.year, now.month);
       final allEntries = await rev.listAllEntries();
-      final currentMonthTotal =
-          currentEntries.fold<double>(0, (sum, e) => sum + e.amount);
-      final lifetimeTotal = allEntries.fold<double>(0, (sum, e) => sum + e.amount);
+
+      double currentMonthTotalIncl = 0;
+      double lifetimeTotalIncl = 0;
+      double lifetimeTotalExcl = 0;
       final byMonth = <(int year, int month), double>{};
+      final byMonthExcl = <(int year, int month), double>{};
       for (final e in allEntries) {
         final d = DateTime.fromMillisecondsSinceEpoch(e.timestamp);
         final key = (d.year, d.month);
-        byMonth[key] = (byMonth[key] ?? 0) + e.amount;
+        final isFreelance = e.source == 'Freelance';
+        final amountIncl = isFreelance ? e.amount * 1.21 : e.amount;
+        final amountExcl = isFreelance ? e.amount : e.amount / 1.21;
+        byMonth[key] = (byMonth[key] ?? 0) + amountIncl;
+        byMonthExcl[key] = (byMonthExcl[key] ?? 0) + amountExcl;
+        lifetimeTotalIncl += amountIncl;
+        lifetimeTotalExcl += amountExcl;
+      }
+      for (final e in currentEntries) {
+        final isFreelance = e.source == 'Freelance';
+        currentMonthTotalIncl += isFreelance ? e.amount * 1.21 : e.amount;
       }
       double bestMonthTotal = 0;
+      double bestMonthTotalExcl = 0;
       int bestYear = now.year, bestMonth = now.month;
       for (final entry in byMonth.entries) {
         if (entry.value > bestMonthTotal) {
           bestMonthTotal = entry.value;
+          bestMonthTotalExcl = byMonthExcl[entry.key] ?? 0;
           bestYear = entry.key.$1;
           bestMonth = entry.key.$2;
         }
@@ -68,12 +84,14 @@ class _HunterPassScreenState extends State<HunterPassScreen> {
           : DateTime.fromMillisecondsSinceEpoch(
               allEntries.map((e) => e.timestamp).reduce((a, b) => a < b ? a : b),
             );
-      final currentRankResult = RankEngine.getRankProgress(currentMonthTotal);
+      final currentRankResult = RankEngine.getRankProgress(currentMonthTotalIncl);
       final bestRankResult = RankEngine.getRankProgress(bestMonthTotal);
       if (mounted) {
         setState(() {
-          _lifetimeTotal = lifetimeTotal;
+          _lifetimeTotal = lifetimeTotalIncl;
+          _lifetimeTotalExcl = lifetimeTotalExcl;
           _bestMonthTotal = bestMonthTotal;
+          _bestMonthTotalExcl = bestMonthTotalExcl;
           _bestMonthYear = bestYear;
           _bestMonthMonth = bestMonth;
           _firstEntryDate = firstEntryDate;
@@ -174,16 +192,28 @@ class _HunterPassScreenState extends State<HunterPassScreen> {
                         ),
                       ],
                       Spacing.gap24,
-                      Text('Best month ever', style: theme.bodyLarge),
+                      Text('Best month ever (incl. VAT)', style: theme.bodyLarge),
                       Text(
                         '${formatCurrencyCompactNoDecimals(_bestMonthTotal)} (${formatMonthLabel(_bestMonthYear, _bestMonthMonth)})',
                         style: theme.headlineSmall,
                       ),
+                      if (_bestMonthTotalExcl > 0) ...[
+                        Spacing.gap8,
+                        Text(
+                          'Excl. VAT: ${formatCurrencyCompactNoDecimals(_bestMonthTotalExcl)}',
+                          style: theme.bodySmall,
+                        ),
+                      ],
                       Spacing.gap16,
-                      Text('Lifetime revenue', style: theme.bodyLarge),
+                      Text('Lifetime revenue (incl. VAT)', style: theme.bodyLarge),
                       Text(
                         formatCurrencyCompactNoDecimals(_lifetimeTotal),
                         style: theme.headlineSmall,
+                      ),
+                      Spacing.gap8,
+                      Text(
+                        'Excl. VAT: ${formatCurrencyCompactNoDecimals(_lifetimeTotalExcl)}',
+                        style: theme.bodySmall,
                       ),
                       Spacing.gap16,
                       Text('First revenue entry', style: theme.bodyLarge),

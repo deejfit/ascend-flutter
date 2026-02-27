@@ -18,7 +18,9 @@ class SourceBreakdown extends StatelessWidget {
     final theme = Theme.of(context).textTheme;
     final bySource = <String, double>{};
     for (final e in entries) {
-      bySource[e.source] = (bySource[e.source] ?? 0) + e.amount;
+      final isFreelance = e.source == 'Freelance';
+      final amountIncl = isFreelance ? e.amount * 1.21 : e.amount;
+      bySource[e.source] = (bySource[e.source] ?? 0) + amountIncl;
     }
     final sorted = bySource.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));

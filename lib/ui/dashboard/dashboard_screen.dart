@@ -123,6 +123,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 currentRankResult: _controller.currentRankResult,
                 bestRankResult: _controller.bestRankResult,
                 metrics: m,
+                monthlyTarget: _controller.monthlyTarget,
               ),
               Spacing.gap32,
               MonthSelector(
@@ -146,12 +147,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Current month total', style: theme.bodyLarge),
+                        Text('Current month total (incl. VAT)', style: theme.bodyLarge),
                         if (m != null)
                           Text(
                             formatCurrencyCompactNoDecimals(m.monthTotal),
                             style: theme.headlineMedium,
                           ),
+                        if (m != null) ...[
+                          Spacing.gap8,
+                          Text(
+                            'Excl. VAT: ${formatCurrencyCompactNoDecimals(m.monthTotalExcl)}',
+                            style: theme.bodySmall,
+                          ),
+                        ],
                         Spacing.gap16,
                         Text(
                           'Growth vs previous',

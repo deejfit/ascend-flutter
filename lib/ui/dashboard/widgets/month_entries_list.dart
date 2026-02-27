@@ -45,13 +45,16 @@ class MonthEntriesList extends StatelessWidget {
             itemBuilder: (context, index) {
               final e = sorted[index];
               final datum = _dateFormat.format(e.date);
+              // Amount incl. VAT per entry
+              final isFreelance = e.source == 'Freelance';
+              final amountIncl = isFreelance ? e.amount * 1.21 : e.amount;
               return ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Row(
                   children: [
                     Expanded(
                       child: Text(
-                        formatCurrencyTwoDecimals(e.amount),
+                        formatCurrencyTwoDecimals(amountIncl),
                         style: theme.titleMedium,
                       ),
                     ),
