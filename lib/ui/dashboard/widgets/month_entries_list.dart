@@ -32,10 +32,10 @@ class MonthEntriesList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Entries deze maand', style: theme.headlineMedium),
+        Text('Entries this month', style: theme.headlineMedium),
         Spacing.gap16,
         if (sorted.isEmpty)
-          Text('Geen entries in deze maand.', style: theme.bodyLarge)
+          Text('No entries this month.', style: theme.bodyLarge)
         else
           ListView.separated(
             shrinkWrap: true,
@@ -45,17 +45,28 @@ class MonthEntriesList extends StatelessWidget {
             itemBuilder: (context, index) {
               final e = sorted[index];
               final datum = _dateFormat.format(e.date);
-              // Amount incl. VAT per entry
+              // Amount incl. / excl. VAT per entry
               final isFreelance = e.source == 'Freelance';
               final amountIncl = isFreelance ? e.amount * 1.21 : e.amount;
+              final amountExcl = isFreelance ? e.amount : e.amount / 1.21;
               return ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        formatCurrencyTwoDecimals(amountIncl),
-                        style: theme.titleMedium,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${formatCurrencyTwoDecimals(amountIncl)} (incl. VAT)',
+                            style: theme.titleMedium,
+                          ),
+                          Text(
+                            '${formatCurrencyTwoDecimals(amountExcl)} (excl. VAT)',
+                            style: theme.bodySmall,
+                          ),
+                        ],
                       ),
                     ),
                     Text(e.source, style: theme.bodyMedium),
